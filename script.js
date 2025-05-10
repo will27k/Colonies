@@ -13,6 +13,10 @@ function drawPixel(x, y, color) {
 let goldTiles = [];
 let foodTiles = [];
 
+let gameHasStartedOnce = false; // Flag to track if the game has started at least once
+let currentModalColonyIndex = -1; // Track which colony's upgrade modal is open
+let currentPriorityModalColonyIndex = -1; // Track which colony's priority modal is open
+
 function spawnGoldAndFood() {
     const goldX = getRandomInt(canvas.width);
     const goldY = getRandomInt(canvas.height);
@@ -49,36 +53,47 @@ function updateColonyStats() {
 
         updateOrCreateStatParagraph(statsDiv, 'pixels', `Pixels: ${colony.pixels.length}`);
         updateOrCreateStatParagraph(statsDiv, 'gold', `Gold: ${colony.gold}`);
-        updateOrCreateStatParagraph(statsDiv, 'food-boost', `Food Boost: Lvl ${colony.upgradeLevel}`);
-        updateOrCreateStatParagraph(statsDiv, 'pixel-boost', `Pixel Boost: Lvl ${colony.pixelUpgradeLevel}`);
-        updateOrCreateStatParagraph(statsDiv, 'focus-boost', `Focus Boost: Lvl ${colony.focusUpgradeLevel}`);
-        updateOrCreateStatParagraph(statsDiv, 'strength-boost', `Strength: Lvl ${colony.strengthUpgradeLevel}`);
+        updateOrCreateStatParagraph(statsDiv, 'food-boost', `Food Boost: Lvl ${colony.upgradeLevel + colony.pendingUpgrades.food}`);
+        updateOrCreateStatParagraph(statsDiv, 'pixel-boost', `Pixel Boost: Lvl ${colony.pixelUpgradeLevel + colony.pendingUpgrades.pixel}`);
+        updateOrCreateStatParagraph(statsDiv, 'focus-boost', `Focus Boost: Lvl ${colony.focusUpgradeLevel + colony.pendingUpgrades.focus}`);
+        updateOrCreateStatParagraph(statsDiv, 'strength-boost', `Strength: Lvl ${colony.strengthUpgradeLevel + colony.pendingUpgrades.strength}`);
         updateOrCreateStatParagraph(statsDiv, 'current-priority', `Priority: ${colony.priority.toUpperCase()}`);
 
-        // Priority Buttons - create if they don't exist
+        // Priority Buttons - replaced with a single "Pixel Focus" button
         let priorityButtonsDiv = statsDiv.querySelector('.priority-buttons');
         if (!colony.isAI) {
             if (!priorityButtonsDiv) {
                 priorityButtonsDiv = document.createElement('div');
-                priorityButtonsDiv.className = 'priority-buttons';
+                priorityButtonsDiv.className = 'priority-buttons'; // Keep class for potential styling
                 statsDiv.appendChild(priorityButtonsDiv);
-
-                const priorities = ['food', 'gold', 'pixel'];
-                priorities.forEach(pType => {
-                    const button = document.createElement('button');
-                    button.textContent = pType.charAt(0).toUpperCase() + pType.slice(1) + (pType === 'pixel' ? ' Priority' : '');
-                    button.title = `Prioritize ${pType.charAt(0).toUpperCase() + pType.slice(1)}`;
-                    button.dataset.priorityType = pType; // Store type for styling
-                    button.onclick = () => setColonyPriority(index, pType);
-                    priorityButtonsDiv.appendChild(button);
-                });
             }
-            // Update active class on priority buttons
-            priorityButtonsDiv.querySelectorAll('button').forEach(btn => {
-                btn.classList.toggle('active-priority', btn.dataset.priorityType === colony.priority);
-            });
+
+            // Create "Pixel Focus" button if it doesn't exist
+            let pixelFocusButton = priorityButtonsDiv.querySelector('.pixel-focus-button');
+            if (!pixelFocusButton) {
+                pixelFocusButton = document.createElement('button');
+                pixelFocusButton.className = 'pixel-focus-button';
+                pixelFocusButton.textContent = 'Pixel Focus';
+                pixelFocusButton.title = 'Set colony pixel focus priority';
+                pixelFocusButton.onclick = () => openPriorityModal(index);
+                priorityButtonsDiv.appendChild(pixelFocusButton);
+            }
+
+            // Persistent "Open Upgrades" button for human players
+            let openUpgradesBtn = statsDiv.querySelector('.open-upgrades-button');
+            if (!openUpgradesBtn) {
+                openUpgradesBtn = document.createElement('button');
+                openUpgradesBtn.className = 'open-upgrades-button';
+                openUpgradesBtn.textContent = 'View Upgrades';
+                openUpgradesBtn.onclick = () => openUpgradeModal(index);
+                // Insert it after priority buttons or at a suitable place
+                if (priorityButtonsDiv) priorityButtonsDiv.insertAdjacentElement('afterend', openUpgradesBtn);
+                else statsDiv.appendChild(openUpgradesBtn);
+            }
         } else if (priorityButtonsDiv) {
             priorityButtonsDiv.innerHTML = ''; // Clear buttons for AI
+            let openUpgradesBtn = statsDiv.querySelector('.open-upgrades-button');
+            if(openUpgradesBtn) openUpgradesBtn.remove(); // Remove upgrade button for AI
         }
     });
 }
@@ -97,21 +112,46 @@ let redUpgradeLevel = 0;
 let gameInterval;
 let spawnInterval;
 let upgradeInterval;
+let roundTimerInterval; // For the visual countdown timer
+let roundTimeRemaining = 60; // Time in seconds for a round
 
 function startGame() {
     // Clear any existing intervals for robustness
     clearInterval(gameInterval);
     clearInterval(spawnInterval);
     clearInterval(upgradeInterval);
+    clearInterval(roundTimerInterval); // Clear previous round timer
 
     // Ensure upgrade UI and reset button are hidden at the start of a round
     document.querySelectorAll('.colony-upgrades').forEach(div => div.style.display = 'none');
     document.getElementById('resetGameButtonContainer').style.display = 'none';
 
+    roundTimeRemaining = 60; // Reset time for the new round
+    updateTimerDisplay(); // Initial display
+
     gameInterval = setInterval(updateColonies, 100);
     spawnInterval = setInterval(spawnGoldAndFood, 200);
     // Set timeout for the upgrade screen
     upgradeInterval = setTimeout(showUpgrades, 60000); // 1 minute
+    roundTimerInterval = setInterval(tickRoundTimer, 1000); // Start visual countdown
+}
+
+function tickRoundTimer() {
+    roundTimeRemaining--;
+    updateTimerDisplay();
+    if (roundTimeRemaining <= 0) {
+        clearInterval(roundTimerInterval); // Stop timer when it reaches 0
+        // showUpgrades is already set by setTimeout, so no need to call it here explicitly
+    }
+}
+
+function updateTimerDisplay() {
+    const timerDisplay = document.getElementById('gameTimerDisplay');
+    if (timerDisplay) {
+        const minutes = Math.floor(roundTimeRemaining / 60);
+        const seconds = roundTimeRemaining % 60;
+        timerDisplay.textContent = `Time: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
 }
 
 function calculateUpgradeCost(currentLevel) {
@@ -120,76 +160,76 @@ function calculateUpgradeCost(currentLevel) {
     return Math.ceil(baseCost * Math.pow(multiplier, currentLevel));
 }
 
-function updateUpgradeButtons() {
-    colonies.forEach((colony, index) => {
-        const upgradeDiv = document.querySelector(`#colony-${index}-info .colony-upgrades`);
-        if (upgradeDiv) {
-            if (colony.isAI) {
-                upgradeDiv.innerHTML = '<h4>AI Controlled</h4>';
-                return; // Skip button creation for AI
-            }
-            upgradeDiv.innerHTML = '<h4>Available Upgrades:</h4>';
-            const upgradeTypes = [
-                { type: 'food', name: 'Food Boost', level: colony.upgradeLevel, effect: '' },
-                { type: 'pixel', name: 'Pixel Boost', level: colony.pixelUpgradeLevel, effect: '' },
-                { type: 'focus', name: 'Focus Boost', level: colony.focusUpgradeLevel, effect: `Reduces random moves by ${colony.focusUpgradeLevel}` },
-                { type: 'strength', name: 'Strength Boost', level: colony.strengthUpgradeLevel, effect: `Increases pixel strength by ${colony.strengthUpgradeLevel}` }
-            ];
-            upgradeTypes.forEach(upg => {
-                const cost = calculateUpgradeCost(upg.level);
-                const button = document.createElement('button');
-                button.innerText = `${upg.name} ($${cost})`;
-                button.title = `Cost: ${cost} Gold. Current Lvl: ${upg.level}. ${upg.effect}`.trim();
-                button.onclick = () => buyUpgrade(index, upg.type);
-                button.disabled = upg.level >= 8 || colony.gold < cost;
-                upgradeDiv.appendChild(button);
-            });
-        }
-    });
-}
-
-function buyUpgrade(colonyIndex, type) {
+function buyUpgrade(colonyIndex, type, calledFromModal = false) {
     const colony = colonies[colonyIndex];
     if (colony.isAI) return; // AI uses its own logic
 
-    let currentLevel;
-    if (type === 'food') currentLevel = colony.upgradeLevel;
-    else if (type === 'pixel') currentLevel = colony.pixelUpgradeLevel;
-    else if (type === 'focus') currentLevel = colony.focusUpgradeLevel;
-    else if (type === 'strength') currentLevel = colony.strengthUpgradeLevel;
+    let effectiveCurrentLevel;
+    if (type === 'food') effectiveCurrentLevel = colony.upgradeLevel + colony.pendingUpgrades.food;
+    else if (type === 'pixel') effectiveCurrentLevel = colony.pixelUpgradeLevel + colony.pendingUpgrades.pixel;
+    else if (type === 'focus') effectiveCurrentLevel = colony.focusUpgradeLevel + colony.pendingUpgrades.focus;
+    else if (type === 'strength') effectiveCurrentLevel = colony.strengthUpgradeLevel + colony.pendingUpgrades.strength;
     else return;
 
-    const upgradeCost = calculateUpgradeCost(currentLevel);
+    const upgradeCost = calculateUpgradeCost(effectiveCurrentLevel);
     const maxLevel = 8;
 
-    if (colony.gold >= upgradeCost && currentLevel < maxLevel) {
+    if (colony.gold >= upgradeCost && effectiveCurrentLevel < maxLevel) {
         colony.gold -= upgradeCost;
-        if (type === 'food') colony.upgradeLevel++;
-        else if (type === 'pixel') colony.pixelUpgradeLevel++;
-        else if (type === 'focus') colony.focusUpgradeLevel++;
-        else if (type === 'strength') colony.strengthUpgradeLevel++;
+        if (type === 'food') colony.pendingUpgrades.food++;
+        else if (type === 'pixel') colony.pendingUpgrades.pixel++;
+        else if (type === 'focus') colony.pendingUpgrades.focus++;
+        else if (type === 'strength') colony.pendingUpgrades.strength++;
         updateColonyStats();
-        updateUpgradeButtons();
-    } else if (currentLevel >= maxLevel) {
-        alert(`Maximum ${type} upgrade level reached for ${colony.color} colony!`);
+        if (calledFromModal && currentModalColonyIndex === colonyIndex) {
+            populateUpgradeModalContent(colonyIndex);
+        }
+    } else if (effectiveCurrentLevel >= maxLevel) {
+        alert(`Maximum ${type} upgrade level (including pending) reached for ${colony.color} colony!`);
     } else {
-        alert(`Not enough gold for ${colony.color} colony to buy ${type} upgrade! Cost: ${upgradeCost}, Your Gold: ${colony.gold}`);
+        alert(`Not enough gold for ${colony.color} colony to buy next ${type} upgrade! Cost: ${upgradeCost}, Your Gold: ${colony.gold}`);
     }
 }
 
 function resetGame() {
     document.querySelectorAll('.colony-upgrades').forEach(div => div.style.display = 'none');
-    document.getElementById('resetGameButtonContainer').style.display = 'none'; // Hide reset button container
+    document.getElementById('resetGameButtonContainer').style.display = 'none';
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     goldTiles = [];
     foodTiles = [];
+
     colonies.forEach((colony, index) => {
+        // Apply pending upgrades (these affect levels for pixel spawning)
+        colony.upgradeLevel += colony.pendingUpgrades.food;
+        colony.pixelUpgradeLevel += colony.pendingUpgrades.pixel;
+        colony.focusUpgradeLevel += colony.pendingUpgrades.focus;
+        colony.strengthUpgradeLevel += colony.pendingUpgrades.strength;
+        colony.pendingUpgrades = { food: 0, pixel: 0, focus: 0, strength: 0 };
+
+        colony.upgradeLevel = Math.min(colony.upgradeLevel, 8);
+        colony.pixelUpgradeLevel = Math.min(colony.pixelUpgradeLevel, 8);
+        colony.focusUpgradeLevel = Math.min(colony.focusUpgradeLevel, 8);
+        colony.strengthUpgradeLevel = Math.min(colony.strengthUpgradeLevel, 8);
+        
         const startingPixels = 10 + colony.pixelUpgradeLevel * 5;
         const corner = getCornerCoordinates(index, canvas);
         colony.pixels = Array.from({ length: startingPixels }, () => ({ x: corner.x, y: corner.y, randomMoveCount: 0 }));
-        // colony.priority = 'none'; // Optionally reset priority each game, or let it persist
+
+        // Gold logic:
+        // if (gameHasStartedOnce) { // Removed: No +1 gold for subsequent rounds
+        //     // For subsequent rounds (triggered by "Initialize Next Round" button), add 1 gold.
+        //     colony.gold += 1;
+        // }
+        // If !gameHasStartedOnce, gold remains its current value (which is 0 from initial definition
+        // when called from initializeGameSetup for the first time).
+        // Gold is now purely based on collection and carry-over.
     });
-    runAIPrioritySetting(); // AI sets priorities for the new round
+
+    if (!gameHasStartedOnce) {
+        gameHasStartedOnce = true; // Mark that the first round setup is complete.
+    }
+
+    runAIPrioritySetting();
     updateColonyStats();
     startGame();
 }
@@ -205,12 +245,80 @@ function getCornerCoordinates(index, canvas) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Ensure the reset button within its container gets the event listener
+    // Event listener for the button on the startup screen
+    document.getElementById('initializeGameButton').addEventListener('click', initializeGameSetup);
+
+    // Event listener for the "Initialize Next Round" button
     document.getElementById('resetGame').addEventListener('click', resetGame);
 
-    // Call resetGame() once on initial load to set up the board, 
-    // populate initial pixels, update stats, and start the game.
-    resetGame(); 
+    // Event listener for closing the upgrade modal
+    document.getElementById('closeUpgradeModal').addEventListener('click', closeUpgradeModal);
+
+    // About Modal Listeners
+    const openAboutModalButton = document.getElementById('openAboutModalButton');
+    const aboutModal = document.getElementById('aboutModal');
+    const closeAboutModalButton = document.getElementById('closeAboutModal');
+    const aboutModalContent = document.getElementById('aboutModalContent');
+    const gameInfoSection = document.getElementById('gameInfoSection');
+
+    if (openAboutModalButton) {
+        openAboutModalButton.addEventListener('click', () => {
+            if (gameInfoSection && aboutModalContent) {
+                aboutModalContent.innerHTML = gameInfoSection.innerHTML;
+            }
+            if (aboutModal) aboutModal.style.display = 'flex';
+        });
+    }
+
+    if (closeAboutModalButton) {
+        closeAboutModalButton.addEventListener('click', () => {
+            if (aboutModal) aboutModal.style.display = 'none';
+        });
+    }
+
+    if (aboutModal) {
+        aboutModal.addEventListener('click', (event) => {
+            if (event.target === aboutModal) { // Click was directly on the overlay
+                aboutModal.style.display = 'none';
+            }
+        });
+    }
+
+    // Close upgrade modal if clicking outside the modal content (on the overlay)
+    const upgradeModalOverlay = document.getElementById('upgradeModal');
+    if (upgradeModalOverlay) { // Ensure the element exists
+        upgradeModalOverlay.addEventListener('click', (event) => {
+            if (event.target === upgradeModalOverlay) { // Check if the click was directly on the overlay
+                closeUpgradeModal();
+            }
+        });
+    }
+
+    // Set initial UI state: show startup screen, hide game content and reset button
+    const startupScreen = document.getElementById('startupScreen');
+    const gameContent = document.getElementById('gameContent');
+    const resetGameButtonContainer = document.getElementById('resetGameButtonContainer');
+
+    if (startupScreen) startupScreen.style.display = 'flex'; // Or 'block' based on your CSS for it
+    if (gameContent) gameContent.style.display = 'none';
+    if (resetGameButtonContainer) resetGameButtonContainer.style.display = 'none';
+    
+    // Do NOT call resetGame() here. The game starts via initializeGameSetup.
+
+    // Priority Modal Listeners
+    const priorityModal = document.getElementById('priorityModal');
+    const closePriorityModalButton = document.getElementById('closePriorityModal');
+
+    if (closePriorityModalButton) {
+        closePriorityModalButton.addEventListener('click', closePriorityModal);
+    }
+    if (priorityModal) {
+        priorityModal.addEventListener('click', (event) => {
+            if (event.target === priorityModal) { // Click was directly on the overlay
+                closePriorityModal();
+            }
+        });
+    }
 });
 
 function movePixel(pixel, colony, colonyIndex) {
@@ -328,19 +436,25 @@ function updateColonies() {
 }
 
 const colonies = [
-    { color: 'red', pixels: [], gold: 0, upgradeLevel: 0, pixelUpgradeLevel: 0, focusUpgradeLevel: 0, strengthUpgradeLevel: 0, priority: 'food', isAI: true },
-    { color: 'green', pixels: [], gold: 0, upgradeLevel: 0, pixelUpgradeLevel: 0, focusUpgradeLevel: 0, strengthUpgradeLevel: 0, priority: 'food', isAI: true },
-    { color: 'purple', pixels: [], gold: 0, upgradeLevel: 0, pixelUpgradeLevel: 0, focusUpgradeLevel: 0, strengthUpgradeLevel: 0, priority: 'food', isAI: true },
-    { color: 'blue', pixels: [], gold: 0, upgradeLevel: 0, pixelUpgradeLevel: 0, focusUpgradeLevel: 0, strengthUpgradeLevel: 0, priority: 'food', isAI: true }
+    { color: 'red', pixels: [], gold: 0, upgradeLevel: 0, pixelUpgradeLevel: 0, focusUpgradeLevel: 0, strengthUpgradeLevel: 0, priority: 'food', isAI: true, pendingUpgrades: { food: 0, pixel: 0, focus: 0, strength: 0 } },
+    { color: 'green', pixels: [], gold: 0, upgradeLevel: 0, pixelUpgradeLevel: 0, focusUpgradeLevel: 0, strengthUpgradeLevel: 0, priority: 'food', isAI: true, pendingUpgrades: { food: 0, pixel: 0, focus: 0, strength: 0 } },
+    { color: 'purple', pixels: [], gold: 0, upgradeLevel: 0, pixelUpgradeLevel: 0, focusUpgradeLevel: 0, strengthUpgradeLevel: 0, priority: 'food', isAI: true, pendingUpgrades: { food: 0, pixel: 0, focus: 0, strength: 0 } },
+    { color: 'blue', pixels: [], gold: 0, upgradeLevel: 0, pixelUpgradeLevel: 0, focusUpgradeLevel: 0, strengthUpgradeLevel: 0, priority: 'food', isAI: true, pendingUpgrades: { food: 0, pixel: 0, focus: 0, strength: 0 } }
 ];
 
 function showUpgrades() {
     clearInterval(gameInterval);
     clearInterval(spawnInterval);
+    clearInterval(roundTimerInterval); // Stop the visual timer
+    
+    console.log("Upgrade Phase Started. Game Paused.");
     runAIUpgrades(); // AI makes its choices first
-    document.querySelectorAll('.colony-upgrades').forEach(div => div.style.display = 'block');
-    document.getElementById('resetGameButtonContainer').style.display = 'block'; // Show reset button container
-    updateUpgradeButtons();
+    
+    // No longer show .colony-upgrades divs in corners. Players use the modal.
+    // document.querySelectorAll('.colony-upgrades').forEach(div => div.style.display = 'block');
+    // updateUpgradeButtons(); // This function is now for the modal, not corner panels.
+
+    document.getElementById('resetGameButtonContainer').style.display = 'block';
 }
 
 // Helper function to find the nearest item
@@ -363,8 +477,13 @@ function setColonyPriority(colonyIndex, priorityType) {
     if (colonies[colonyIndex]) {
         if (colonies[colonyIndex].priority === priorityType && !colonies[colonyIndex].isAI) return; // No change if already set for human
         colonies[colonyIndex].priority = priorityType;
-        colonies[colonyIndex].pixels.forEach(p => p.randomMoveCount = 0);
+        colonies[colonyIndex].pixels.forEach(p => p.randomMoveCount = 0); // Reset random move count for new priority targeting
         updateColonyStats();
+
+        // If the priority modal is open for this colony, refresh its content
+        if (document.getElementById('priorityModal').style.display === 'flex' && currentPriorityModalColonyIndex === colonyIndex) {
+            populatePriorityModalContent(colonyIndex);
+        }
     }
 }
 
@@ -394,26 +513,24 @@ function runAIUpgrades() {
             let canAffordAnUpgrade = true;
             while (canAffordAnUpgrade && colony.gold > 0) {
                 const possibleUpgrades = [
-                    { type: 'food', level: colony.upgradeLevel, cost: calculateUpgradeCost(colony.upgradeLevel) },
-                    { type: 'pixel', level: colony.pixelUpgradeLevel, cost: calculateUpgradeCost(colony.pixelUpgradeLevel) },
-                    { type: 'focus', level: colony.focusUpgradeLevel, cost: calculateUpgradeCost(colony.focusUpgradeLevel) },
-                    { type: 'strength', level: colony.strengthUpgradeLevel, cost: calculateUpgradeCost(colony.strengthUpgradeLevel) }
+                    { type: 'food', level: colony.upgradeLevel + colony.pendingUpgrades.food, cost: calculateUpgradeCost(colony.upgradeLevel + colony.pendingUpgrades.food) },
+                    { type: 'pixel', level: colony.pixelUpgradeLevel + colony.pendingUpgrades.pixel, cost: calculateUpgradeCost(colony.pixelUpgradeLevel + colony.pendingUpgrades.pixel) },
+                    { type: 'focus', level: colony.focusUpgradeLevel + colony.pendingUpgrades.focus, cost: calculateUpgradeCost(colony.focusUpgradeLevel + colony.pendingUpgrades.focus) },
+                    { type: 'strength', level: colony.strengthUpgradeLevel + colony.pendingUpgrades.strength, cost: calculateUpgradeCost(colony.strengthUpgradeLevel + colony.pendingUpgrades.strength) }
                 ];
                 const affordableUpgrades = possibleUpgrades.filter(upg => upg.level < 8 && colony.gold >= upg.cost);
                 if (affordableUpgrades.length === 0) {
-                    canAffordAnUpgrade = false;
-                    break; 
+                    canAffordAnUpgrade = false; break;
                 }
                 affordableUpgrades.sort((a, b) => a.cost - b.cost);
                 const bestUpgradeToBuy = affordableUpgrades[0];
                 colony.gold -= bestUpgradeToBuy.cost;
-                if (bestUpgradeToBuy.type === 'food') colony.upgradeLevel++;
-                else if (bestUpgradeToBuy.type === 'pixel') colony.pixelUpgradeLevel++;
-                else if (bestUpgradeToBuy.type === 'focus') colony.focusUpgradeLevel++;
-                else if (bestUpgradeToBuy.type === 'strength') colony.strengthUpgradeLevel++;
-                console.log(`AI Colony ${colony.color} purchased ${bestUpgradeToBuy.type} upgrade. Gold remaining: ${colony.gold}`);
+                if (bestUpgradeToBuy.type === 'food') colony.pendingUpgrades.food++;
+                else if (bestUpgradeToBuy.type === 'pixel') colony.pendingUpgrades.pixel++;
+                else if (bestUpgradeToBuy.type === 'focus') colony.pendingUpgrades.focus++;
+                else if (bestUpgradeToBuy.type === 'strength') colony.pendingUpgrades.strength++;
+                console.log(`AI Colony ${colony.color} queued ${bestUpgradeToBuy.type} upgrade. Gold remaining: ${colony.gold}`);
             }
-            updateColonyStats();
         }
     });
 }
@@ -449,11 +566,96 @@ function initializeGameSetup() {
     document.getElementById('startupScreen').style.display = 'none';
     document.getElementById('gameContent').style.display = 'flex'; // Or block, depending on your main layout
 
+    gameHasStartedOnce = false; // Crucial: Set for the very first game start sequence
     resetGame(); // Initialize and start the first round
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('initializeGameButton').addEventListener('click', initializeGameSetup);
-    document.getElementById('resetGame').addEventListener('click', resetGame);
-    // Note: updateColonyStats and startGame are now called via initializeGameSetup -> resetGame
-});
+// This function now populates the MODAL instead of corner panels
+function populateUpgradeModalContent(colonyIndex) {
+    const colony = colonies[colonyIndex];
+    if (!colony || colony.isAI) {
+        closeUpgradeModal(); // Should not happen for AI via UI
+        return;
+    }
+
+    document.getElementById('modalColonyName').textContent = `${colony.color.toUpperCase()} Colony Upgrades`;
+    document.getElementById('modalColonyGold').textContent = colony.gold;
+    
+    const modalUpgradeButtonsContainer = document.getElementById('modalUpgradeButtonsContainer');
+    modalUpgradeButtonsContainer.innerHTML = ''; // Clear old buttons
+
+    const upgradeTypes = [
+        { type: 'food', name: 'Food Boost', currentEffectiveLevel: colony.upgradeLevel + colony.pendingUpgrades.food, effect: '' },
+        { type: 'pixel', name: 'Pixel Boost', currentEffectiveLevel: colony.pixelUpgradeLevel + colony.pendingUpgrades.pixel, effect: '' },
+        { type: 'focus', name: 'Focus Boost', currentEffectiveLevel: colony.focusUpgradeLevel + colony.pendingUpgrades.focus, effect: `Reduces random moves by ${colony.focusUpgradeLevel + colony.pendingUpgrades.focus}` },
+        { type: 'strength', name: 'Strength Boost', currentEffectiveLevel: colony.strengthUpgradeLevel + colony.pendingUpgrades.strength, effect: `Increases pixel strength by ${colony.strengthUpgradeLevel + colony.pendingUpgrades.strength}` }
+    ];
+
+    upgradeTypes.forEach(upg => {
+        const cost = calculateUpgradeCost(upg.currentEffectiveLevel);
+        const button = document.createElement('button');
+        button.innerText = `${upg.name} ($${cost}) - Lvl ${upg.currentEffectiveLevel}`;
+        button.title = `Cost: ${cost} Gold. Current Lvl (incl. pending): ${upg.currentEffectiveLevel}. ${upg.effect}`.trim();
+        button.onclick = () => buyUpgrade(colonyIndex, upg.type, true);
+        button.disabled = upg.currentEffectiveLevel >= 8 || colony.gold < cost;
+        modalUpgradeButtonsContainer.appendChild(button);
+    });
+}
+
+function openUpgradeModal(colonyIndex) {
+    currentModalColonyIndex = colonyIndex; // Store which colony's modal is open
+    populateUpgradeModalContent(colonyIndex);
+    document.getElementById('upgradeModal').style.display = 'flex';
+}
+
+function closeUpgradeModal() {
+    currentModalColonyIndex = -1;
+    document.getElementById('upgradeModal').style.display = 'none';
+}
+
+// --- Priority Modal Functions ---
+function openPriorityModal(colonyIndex) {
+    currentPriorityModalColonyIndex = colonyIndex;
+    const colony = colonies[colonyIndex];
+    if (!colony || colony.isAI) return; // Should not be callable for AI from UI
+
+    document.getElementById('priorityModalTitle').textContent = `Set Pixel Focus for ${colony.color.toUpperCase()} Colony`;
+    populatePriorityModalContent(colonyIndex);
+    document.getElementById('priorityModal').style.display = 'flex';
+}
+
+function populatePriorityModalContent(colonyIndex) {
+    const colony = colonies[colonyIndex];
+    const priorityModalButtonsContainer = document.getElementById('priorityModalButtonsContainer');
+    priorityModalButtonsContainer.innerHTML = ''; // Clear old buttons
+
+    const priorities = [
+        { type: 'food', name: 'Food Priority', description: 'Pixels will target the nearest Food tile.' },
+        { type: 'gold', name: 'Gold Priority', description: 'Pixels will target the nearest Gold tile.' },
+        { type: 'pixel', name: 'Pixel Priority', description: 'Pixels will target the nearest enemy Pixel.' }
+    ];
+
+    priorities.forEach(pTypeInfo => {
+        const button = document.createElement('button');
+        button.textContent = pTypeInfo.name;
+        button.title = pTypeInfo.description;
+        button.dataset.priorityType = pTypeInfo.type;
+        button.onclick = () => handlePrioritySelectionFromModal(pTypeInfo.type);
+        if (colony.priority === pTypeInfo.type) {
+            button.classList.add('active-priority'); // Reuse existing class or create a new one for modal
+        }
+        priorityModalButtonsContainer.appendChild(button);
+    });
+}
+
+function handlePrioritySelectionFromModal(priorityType) {
+    if (currentPriorityModalColonyIndex === -1) return;
+    setColonyPriority(currentPriorityModalColonyIndex, priorityType);
+    // No need to explicitly close, user can make multiple changes or close manually.
+    // populatePriorityModalContent will be called by setColonyPriority if modal is still open.
+}
+
+function closePriorityModal() {
+    currentPriorityModalColonyIndex = -1;
+    document.getElementById('priorityModal').style.display = 'none';
+}
