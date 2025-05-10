@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Colonies Ascendant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="startupScreen">
+        <h2>Game Setup</h2>
+        <label for="numPlayersInput">Number of Human Players (1-4):</label>
+        <input type="number" id="numPlayersInput" value="1" min="1" max="4">
+        <button id="initializeGameButton">Start Game</button>
+    </div>
+
+    <div id="gameContent" style="display: none;">
+        <header>
+            <h1>Pixel Colonies Ascendant</h1>
+        </header>
+        <main id="gameArea">
+            <div id="colony-0-info" class="colony-info-panel top-left-panel">
+                <div class="colony-stats"></div>
+                <div class="colony-upgrades" style="display: none;"></div>
+            </div>
+
+            <div id="canvasContainer">
+                <canvas id="gameCanvas" width="200" height="100"></canvas>
+            </div>
+
+            <div id="colony-1-info" class="colony-info-panel top-right-panel">
+                <div class="colony-stats"></div>
+                <div class="colony-upgrades" style="display: none;"></div>
+            </div>
+
+            <div id="colony-2-info" class="colony-info-panel bottom-left-panel">
+                <div class="colony-stats"></div>
+                <div class="colony-upgrades" style="display: none;"></div>
+            </div>
+
+            <div id="colony-3-info" class="colony-info-panel bottom-right-panel">
+                <div class="colony-stats"></div>
+                <div class="colony-upgrades" style="display: none;"></div>
+            </div>
+            
+            <div id="resetGameButtonContainer" style="display: none;">
+                <button id="resetGame">Initialize Next Round</button>
+            </div>
+        </main>
+        <footer>
+            <p>Game In Development</p>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html> 
