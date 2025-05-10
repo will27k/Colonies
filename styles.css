@@ -13,6 +13,7 @@
     --green-colony-color: #2ed573;
     --purple-colony-color: #8c7ae6;
     --blue-colony-color: #0738da;
+    --border-color_transparent: rgba(79, 79, 122, 0.5); /* Example: var(--border-color) with alpha */
 }
 
 body {
@@ -214,4 +215,57 @@ footer {
     color: var(--background-color);
     box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
     transform: translateY(0px); 
+}
+
+#gameInfoSection {
+    width: 80%; /* Or a fixed width like 800px, matching canvas perhaps */
+    max-width: 900px;
+    margin: 30px auto; /* Center it and give space */
+    padding: 20px 30px;
+    background-color: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+#gameInfoSection h2 {
+    font-family: var(--title-font);
+    color: var(--accent-color);
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 25px;
+    font-size: 1.8em;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+#gameInfoSection h3 {
+    font-family: var(--title-font);
+    color: var(--accent-hover-color); /* Slightly different accent for subheadings */
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-size: 1.3em;
+    border-bottom: 1px dashed var(--border-color_transparent); /* Softer separator */
+    padding-bottom: 5px;
+}
+
+#gameInfoSection p, #gameInfoSection li {
+    font-size: 1em; /* Slightly larger than panel text for readability */
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+#gameInfoSection strong {
+    color: var(--text-color); /* Ensure strong stands out if base text is lighter */
+    font-weight: bold;
+}
+
+#gameInfoSection ul {
+    list-style-type: disc; /* Or none if you prefer custom icons/layout */
+    padding-left: 25px;
+    margin-bottom: 15px;
+}
+
+#gameInfoSection .info-content {
+    text-align: left; /* Default, but ensure it's not centered by mistake */
 } 

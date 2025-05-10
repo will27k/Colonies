@@ -48,6 +48,49 @@
                 <button id="resetGame">Initialize Next Round</button>
             </div>
         </main>
+
+        <section id="gameInfoSection">
+            <h2>About Pixel Colonies Ascendant</h2>
+            <div class="info-content">
+                <p><strong>Welcome, Overseer!</strong> Your goal is to guide your colored colony to dominance by gathering resources, upgrading your capabilities, and strategically outmaneuvering or overpowering other colonies.</p>
+                
+                <h3>The Pixels:</h3>
+                <ul>
+                    <li><strong>Colony Pixels (Red, Green, Purple, Lightblue):</strong> These are the units of your colony. They move automatically.</li>
+                    <li><strong>Yellow Pixels (Gold):</strong> Collect these to spend on powerful upgrades for your colony during the upgrade phase (between rounds).</li>
+                    <li><strong>White Pixels (Food):</strong> When a colony pixel moves onto a food pixel, it's consumed, and your colony spawns additional pixels (more with the 'Food Boost' upgrade).</li>
+                </ul>
+
+                <h3>Pixel Behavior & Priorities:</h3>
+                <p>Your colony's pixels generally move randomly. However, they will attempt a <strong>directed move</strong> towards a specific target every 10 random moves (this frequency can be increased with the 'Focus Boost' upgrade).</p>
+                <p>You (or the AI) can set a <strong>Priority</strong> for your colony:</p>
+                <ul>
+                    <li><strong>Food Priority:</strong> Directed moves will target the nearest Food pixel. Default starting priority.</li>
+                    <li><strong>Gold Priority:</strong> Directed moves will target the nearest Gold pixel.</li>
+                    <li><strong>Pixel Priority:</strong> Directed moves will target the nearest enemy colony's pixel.</li>
+                </ul>
+
+                <h3>Combat:</h3>
+                <p>When a pixel moves onto a square occupied by an enemy pixel, they fight!</p>
+                <ul>
+                    <li>Each colony has a <strong>Strength Level</strong> (upgradable via 'Strength Boost'). A pixel's strength is 1 + its colony's Strength Level.</li>
+                    <li>If an attacker's strength is higher, the defender is destroyed.</li>
+                    <li>If a defender's strength is higher, the attacker is destroyed.</li>
+                    <li>If strengths are equal, it's a 50/50 chance who survives.</li>
+                </ul>
+
+                <h3>Upgrades (End of Round):</h3>
+                <p>After each 1-minute round, the game pauses for an upgrade phase. Spend your collected Gold on:</p>
+                <ul>
+                    <li><strong>Food Boost:</strong> Spawn more pixels when food is eaten.</li>
+                    <li><strong>Pixel Boost:</strong> Start the next round with more pixels.</li>
+                    <li><strong>Focus Boost:</strong> Pixels make directed moves more frequently.</li>
+                    <li><strong>Strength Boost:</strong> Increases your pixels' combat strength.</li>
+                </ul>
+                <p><em>AI colonies will automatically purchase upgrades and set priorities.</em></p>
+            </div>
+        </section>
+
         <footer>
             <p>Game In Development</p>
         </footer>
