@@ -331,7 +331,7 @@ const colonies = [
     { color: 'red', pixels: [], gold: 0, upgradeLevel: 0, pixelUpgradeLevel: 0, focusUpgradeLevel: 0, strengthUpgradeLevel: 0, priority: 'food', isAI: true },
     { color: 'green', pixels: [], gold: 0, upgradeLevel: 0, pixelUpgradeLevel: 0, focusUpgradeLevel: 0, strengthUpgradeLevel: 0, priority: 'food', isAI: true },
     { color: 'purple', pixels: [], gold: 0, upgradeLevel: 0, pixelUpgradeLevel: 0, focusUpgradeLevel: 0, strengthUpgradeLevel: 0, priority: 'food', isAI: true },
-    { color: 'lightblue', pixels: [], gold: 0, upgradeLevel: 0, pixelUpgradeLevel: 0, focusUpgradeLevel: 0, strengthUpgradeLevel: 0, priority: 'food', isAI: true }
+    { color: 'blue', pixels: [], gold: 0, upgradeLevel: 0, pixelUpgradeLevel: 0, focusUpgradeLevel: 0, strengthUpgradeLevel: 0, priority: 'food', isAI: true }
 ];
 
 function showUpgrades() {
