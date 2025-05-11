@@ -56,14 +56,14 @@ header h1 {
 main#gameArea {
     display: grid;
     grid-template-columns: auto 1fr auto;
-    grid-template-rows: auto auto 1fr auto;
+    grid-template-rows: auto auto auto auto;
     grid-template-areas:
         "top-left-area    canvas-area      top-right-area"
-        "top-left-area    game-timer-area  top-right-area"
-        "left-middle-area game-timer-area  right-middle-area"
-        "bottom-left-area reset-area       bottom-right-area"
-        "bottom-left-area info-button-area bottom-right-area";
-    gap: 15px;
+        "bottom-left-area canvas-area      bottom-right-area"
+        ".                game-timer-area  ."
+        ".                info-button-area ."
+    ;
+    gap: 20px;
     padding: 20px;
     width: fit-content;
     margin-top: 10px;
@@ -79,8 +79,8 @@ main#gameArea {
 
 canvas#gameCanvas {
     background-color: var(--canvas-bg-color);
-    width: 800px;
-    height: 400px;
+    width: 600px;
+    height: 600px;
     border: 3px solid var(--accent-color);
     box-shadow: 0 0 15px var(--accent-color);
     border-radius: 5px;
@@ -101,10 +101,10 @@ canvas#gameCanvas {
     box-shadow: 0 6px 16px rgba(0,0,0,0.4);
 }
 
-.top-left-panel { grid-area: top-left-area; justify-self: end; align-self: end; margin-right: -10px; margin-bottom: -10px; }
-.top-right-panel { grid-area: top-right-area; justify-self: start; align-self: end; margin-left: -10px; margin-bottom: -10px;}
-.bottom-left-panel { grid-area: bottom-left-area; justify-self: end; align-self: start; margin-right: -10px; margin-top: -10px;}
-.bottom-right-panel { grid-area: bottom-right-area; justify-self: start; align-self: start; margin-left: -10px; margin-top: -10px;}
+.top-left-panel { grid-area: top-left-area; justify-self: end; align-self: start; margin-right: -10px; margin-bottom: -10px; }
+.top-right-panel { grid-area: top-right-area; justify-self: start; align-self: start; margin-left: -10px; margin-bottom: -10px;}
+.bottom-left-panel { grid-area: bottom-left-area; justify-self: end; align-self: end; margin-right: -10px; margin-top: -10px;}
+.bottom-right-panel { grid-area: bottom-right-area; justify-self: start; align-self: end; margin-left: -10px; margin-top: -10px;}
 
 .colony-stats h3 {
     font-family: var(--title-font);
@@ -154,12 +154,6 @@ button:disabled {
     color: #888;
     cursor: not-allowed;
     transform: none;
-}
-
-#resetGameButtonContainer {
-    grid-area: reset-area;
-    text-align: center;
-    margin-top: 10px; 
 }
 
 #gameInfoButtonContainer {
@@ -400,5 +394,36 @@ footer {
     color: var(--background-color);
     box-shadow: inset 0 0 8px rgba(0,0,0,0.4);
     border: 1px solid var(--accent-color); /* Add a border to make it pop more */
+}
+
+/* Win Modal Specific Styles */
+#winModal .modal-content {
+    text-align: center;
+}
+
+#winMessage {
+    font-family: var(--title-font);
+    color: var(--accent-color);
+    font-size: 2em; /* Larger for emphasis */
+    margin-top: 0;
+    margin-bottom: 20px;
+    text-shadow: 0 0 8px var(--accent-hover-color);
+}
+
+#winModal p {
+    font-size: 1.1em;
+    margin-bottom: 25px;
+}
+
+.primary-action-button {
+    /* Inherits general button styles, can add more specifics here */
+    padding: 12px 25px; /* Make it a bit larger */
+    font-size: 1.1em;
+    background-color: var(--accent-hover-color); /* Make it stand out more */
+    color: var(--background-color);
+}
+
+.primary-action-button:hover {
+    background-color: var(--accent-color);
 }
 

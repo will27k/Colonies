@@ -67,7 +67,7 @@
             </div>
 
             <div id="canvasContainer">
-                <canvas id="gameCanvas" width="200" height="100"></canvas>
+                <canvas id="gameCanvas" width="200" height="200"></canvas>
             </div>
 
             <div id="gameTimerContainer" class="game-timer-panel">
@@ -80,7 +80,6 @@
             </div>
 
             <div id="colony-2-info" class="colony-info-panel bottom-left-panel">
-                <div class="colony-stats"></div>
                 <div class="colony-upgrades" style="display: none;"></div>
             </div>
 
@@ -89,9 +88,6 @@
                 <div class="colony-upgrades" style="display: none;"></div>
             </div>
             
-            <div id="resetGameButtonContainer" style="display: none;">
-                <button id="resetGame">Initialize Next Round</button>
-            </div>
             <div id="gameInfoButtonContainer">
                 <button id="openAboutModalButton">View Game Info</button>
             </div>
@@ -133,6 +129,16 @@
             <div id="priorityModalButtonsContainer">
                 <!-- Priority choice buttons (Food, Gold, Pixel) will be dynamically inserted here by JS -->
             </div>
+        </div>
+    </div>
+
+    <!-- Win Modal -->
+    <div id="winModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <!-- No close button for win modal, only Play Again -->
+            <h2 id="winMessage">[Winner Info Here]</h2>
+            <p>The battlefield is quiet. A new era begins?</p>
+            <button id="playAgainButton" class="primary-action-button">Play Again</button>
         </div>
     </div>
 
